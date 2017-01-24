@@ -8,27 +8,31 @@ require_once __DIR__ . "/FlowNetwork.php";
  * Example No. 1
  */
 $inputFile = 'example.txt';
-// Read
-$data = file($inputFile);
-// Parse
-$graph = parseVertical($data);
-// Get house IDs
-$houses = getHouses($graph);
+$data = file($inputFile); // Read
+$graph = parseVertical($data); // Parse
+$houses = getHouses($graph); // Get house IDs
 
 /**
  * Example No. 2
  */
-// $inputFile = 'input1.txt';
-// $data = file($inputFile);
-// $graph = parseHorizontal($data[0]);
-// $houses = getHouses($graph, 0);
+$inputFile = 'input1.txt';
+$data = file($inputFile);
+$graph = parseHorizontal($data[0]);
+$houses = getHouses($graph, 0);
 
+
+/**
+ * Simple algorithm
+ */
 $paths = iterativePaths($graph['edges'], $houses['pooh'], $houses['piglet']);
-print_r($paths);
+$edgedPaths = getPathsToEdges($paths);
+$edgeFrequencies = getEdgeFrequencies($edgedPaths);
+$honeyableEdges = getHoneyableEdges($edgeFrequencies, $edgedPaths);
 
-$frequencyEdges = frequencyEdges($paths);
-arsort($frequencyEdges);
-print_r($frequencyEdges);
+echo "On how many edges to put the:\t " . count($honeyableEdges);
+echo "\nResult: " . implode(" ", array_map(function ($edge) {
+    return $edge['u'] . " " . $edge['v'];
+},$honeyableEdges));
 
 /**
  * With Ford-Fulkerson algorithm
@@ -44,5 +48,6 @@ foreach ($graph['edges'] as $from => $edges) {
     }
 }
 $flow = $flowNetwork->maxFlow($houses['pooh'], $houses['piglet']);
-// print_r($flowNetwork);
+echo "\n";
+print_r($flowNetwork->flow);
 var_dump($flow);
