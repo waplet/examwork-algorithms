@@ -1,42 +1,52 @@
 <?php
 
-require_once __DIR__ . "/functions.php";
-require_once __DIR__ . "/FlowNetwork.php";
+require_once __DIR__ . "/include/functions.php";
+require_once __DIR__ . "/include/FlowNetwork.php";
 
+// print_r();
 
+ini_set("memory_limit", "1G");
 /**
- * Example No. 1
+ * Preparing data
  */
-$inputFile = 'example.txt';
-$data = file($inputFile); // Read
-$graph = parseVertical($data); // Parse
-$houses = getHouses($graph); // Get house IDs
+$parameters = [];
+
+parse_str(implode('&', array_slice($argv, 1)), $parameters);
+
+if ($argc == 1) {
+    die("No input file specified");
+}
+
+$inputFile = $argv[1];
+if (!file_exists($inputFile)) {
+    die("Input file not found");
+}
+
+$index = 0; // from which to start count edges
+
+// rewrites
+// Type
+if (isset($parameters['type'])) {
+    $type = (boolean) $parameters['type'];
+}
+// Index
+if (isset($parameters['index'])) {
+    $index = (boolean) $parameters['index'];
+}
+
+$graph = getGraph($inputFile);
+$houses = getHouses($graph, $index);
+
 
 /**
- * Example No. 2
- */
-$inputFile = 'input1.txt';
-$data = file($inputFile);
-$graph = parseHorizontal($data[0]);
-$houses = getHouses($graph, 0);
-
-
-/**
- * Simple algorithm
+ * Algorithm part starts
  */
 $paths = iterativePaths($graph['edges'], $houses['pooh'], $houses['piglet']);
 $edgedPaths = getPathsToEdges($paths);
 $edgeFrequencies = getEdgeFrequencies($edgedPaths);
 $honeyableEdges = getHoneyableEdges($edgeFrequencies, $edgedPaths);
+printOutput($honeyableEdges, false);
 
-echo "On how many edges to put the:\t " . count($honeyableEdges);
-echo "\nResult: " . implode(" ", array_map(function ($edge) {
-    return $edge['u'] . " " . $edge['v'];
-},$honeyableEdges));
-
-/**
- * With Ford-Fulkerson algorithm
- */
 $flowNetwork = new FlowNetwork();
 for ($i = $houses['pooh']; $i <= $houses['piglet']; $i++) {
     $flowNetwork->addVertex($i);
@@ -44,10 +54,13 @@ for ($i = $houses['pooh']; $i <= $houses['piglet']; $i++) {
 
 foreach ($graph['edges'] as $from => $edges) {
     foreach ($edges as $to) {
+        if ($from == $to) {
+            continue; // skip loops
+        }
         $flowNetwork->addEdge($from, $to);
     }
 }
 $flow = $flowNetwork->maxFlow($houses['pooh'], $houses['piglet']);
 echo "\n";
-print_r($flowNetwork->flow);
+// print_r($flowNetwork->flow);
 var_dump($flow);

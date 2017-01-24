@@ -2,6 +2,10 @@
 
 require_once __DIR__ . "/Edge.php";
 
+/**
+ * https://en.wikipedia.org/wiki/Ford%E2%80%93Fulkerson_algorithm
+ * Class FlowNetwork
+ */
 class FlowNetwork
 {
     public $adjacentVertex = [];

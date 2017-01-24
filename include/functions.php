@@ -1,6 +1,5 @@
 <?php
 
-
 /**
  * @param string $data n a1 b1 a2 b2 ... an bn
  * @param string $delimiter
@@ -19,37 +18,6 @@ function parseHorizontal($data, $delimiter = ' ')
 
     for ($i = 0; $i < count($numbers) / 2; $i++) {
         $edge = [$numbers[$i * 2], $numbers[$i * 2 + 1]];
-
-        if (!array_key_exists($edge[0], $result['edges'])) {
-            $result['edges'][(int)$edge[0]] = [];
-        }
-
-        $result['edges'][(int)$edge[0]][] = (int)$edge[1];
-    }
-
-    return $result;
-}
-
-/**
- * @param array $data array of lines
- * @param string $delimiter
- * @return array ['vertices' => int, 'edges' => []]
- */
-function parseVertical($data, $delimiter = ' ')
-{
-    $n = array_shift($data);
-
-    $result = [
-        'vertices' => (int)$n,
-        'edges' => [],
-    ];
-
-    /**
-     * $edge[0] from
-     * $edge[1] to
-     */
-    foreach ($data as $value) {
-        $edge = explode($delimiter, $value);
 
         if (!array_key_exists($edge[0], $result['edges'])) {
             $result['edges'][(int)$edge[0]] = [];
@@ -89,6 +57,14 @@ function calculatePaths($edges, $start, $legalDestination)
     return $result;
 }
 
+/**
+ * @param $result
+ * @param $edges
+ * @param $currentPath
+ * @param $lastEdge
+ * @param $legalDestination
+ * @deprecated
+ */
 function calcRecursivePaths(&$result, $edges, $currentPath, $lastEdge, $legalDestination)
 {
     if (!isset($edges[$lastEdge])) {
@@ -111,12 +87,19 @@ function calcRecursivePaths(&$result, $edges, $currentPath, $lastEdge, $legalDes
     return;
 }
 
+/**
+ * @param array $edges [from => [to1, to2, to3]]
+ * @param int $start
+ * @param int $legalDestination marker to check if path is legit
+ * @param bool $withEndpoints should we include pooh's and piglet's house?
+ * @return array [[v1 => v1, v2 => v2, ...], ...] hash map
+ */
 function iterativePaths($edges, $start, $legalDestination, $withEndpoints = true)
 {
     $stack = [];
     $paths = [];
     if ($withEndpoints) {
-        $path = [$start => true];
+        $path = [$start => $start];
     } else {
         $path = [];
     }
@@ -132,7 +115,7 @@ function iterativePaths($edges, $start, $legalDestination, $withEndpoints = true
             if ($item['start'] == $legalDestination) {
                 if ($withEndpoints) {
                     $path = $item['path'];
-                    $path[] = $item['start'];
+                    $path[$item['start']] = $item['start'];
                     $paths[] = $path;
                 } else {
                     $paths[] = $item['path'];
@@ -143,13 +126,13 @@ function iterativePaths($edges, $start, $legalDestination, $withEndpoints = true
 
         } else {
             foreach ($edges[$item['start']] as $vertice) {
-                if (in_array($item['start'], $item['path'])) {
+                if (isset($item['path'][$item['start']])) {
                     // possible loop
                     continue;
                 }
 
                 $path = $item['path'];
-                $path[] = $item['start'];
+                $path[$item['start']] = $item['start'];
                 $stack[] = ['start' => $vertice, 'path' => $path];
 
                 continue;
@@ -161,27 +144,34 @@ function iterativePaths($edges, $start, $legalDestination, $withEndpoints = true
 }
 
 /**
- * Full path [s, a,b,c, .. t], hash map
- * @param $path
- * @return array ['u' => int, 'v' => int]
+ * @param array $path Full path [s, a,b,c, .. t], hash map
+ * @return array ['u' => int, 'v' => int, 'key' => 'u' . ':' . 'v']
  */
 function pathToEdges($path)
 {
     $edges = [];
-    for ($i = 0; $i < count($path) - 1; $i++) {
-        $edges[$path[$i] . ':' . $path[$i + 1]] = [
-            'u' => $path[$i],
-            'v' => $path[$i + 1],
-            'key' => $path[$i] . ':' . $path[$i + 1],
-        ];
-    }
+    $from = false;
+    foreach ($path as $to) {
+        if ($from === false) {
+            // 0 != false, in this case
+            $from = $to;
+            continue;
+        }
 
+        $edgeKey = $from . ':' . $to;
+        $edges[$edgeKey] = [
+            'u' => $from,
+            'v' => $to,
+            'key' => $edgeKey,
+        ];
+        $from = $to;
+    }
     return $edges;
 }
 
 /**
- * @param $edgedPaths
- * @return array ['u:v' => frequency]
+ * @param $edgedPaths [['u' => int, 'v' => int, 'key' => 'u' . ':' . 'v']]
+ * @return array ['u:v' => (int) frequency, 'key' => 'u' . ':' . 'v', 'u' => int, 'v' => int]
  */
 function getEdgeFrequencies($edgedPaths)
 {
@@ -202,7 +192,7 @@ function getEdgeFrequencies($edgedPaths)
         }
     }
 
-    // Sorts
+    // Sorts by frequency
     uasort($result, function ($a, $b) {
         return $a['frequency'] > $b['frequency'];
     });
@@ -210,8 +200,8 @@ function getEdgeFrequencies($edgedPaths)
 }
 
 /**
- * @param $edgeFrequencies
- * @param $edgedPaths
+ * @param $edgeFrequencies ['u:v' => (int) frequency, 'key' => 'u' . ':' . 'v', 'u' => int, 'v' => int]
+ * @param $edgedPaths [['u' => int, 'v' => int, 'key' => 'u' . ':' . 'v']]
  * @return array
  */
 function getHoneyableEdges($edgeFrequencies, $edgedPaths)
@@ -235,7 +225,7 @@ function getHoneyableEdges($edgeFrequencies, $edgedPaths)
 }
 
 /**
- * @param $paths
+ * @param $paths [[v1 => v1, v2 => v2]]
  * @return array [['u:v']] multiple edges
  */
 function getPathsToEdges($paths)
@@ -246,4 +236,45 @@ function getPathsToEdges($paths)
     }
 
     return $edgedPaths;
+}
+
+function printOutput($honeyableEdges, $verbose = false)
+{
+    if ($verbose) {
+        echo "How much honey puts should we leave? - " . count($honeyableEdges);
+        echo "\nEdges: " . implode(" ", array_map(function ($edge) {
+                return "\n" . $edge['u'] . " " . $edge['v'];
+            }, $honeyableEdges));
+    } else {
+        echo count($honeyableEdges) . " " . implode(" ", array_map(function ($edge) {
+                return $edge['u'] . " " . $edge['v'];
+            }, $honeyableEdges));
+    }
+}
+
+/**
+ * Return graph
+ * @param string $inputFile
+ * @return array graph
+ */
+function getGraph($inputFile)
+{
+    $data = regexParser(file($inputFile));
+    $graph = parseHorizontal($data);
+
+    return $graph;
+}
+
+/**
+ * Using regex to pre-format data to horizontal universal parser
+ * @param $data
+ * @return string
+ */
+function regexParser($data)
+{
+    $oneLineData = implode(" ", $data);
+    preg_match_all('#(\d+)#', $oneLineData, $matches);
+    $data = implode(" ", $matches[1]);
+
+    return $data;
 }

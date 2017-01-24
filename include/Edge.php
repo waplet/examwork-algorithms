@@ -1,5 +1,9 @@
 <?php
 
+/**
+ * https://en.wikipedia.org/wiki/Ford%E2%80%93Fulkerson_algorithm
+ * Class Edge
+ */
 class Edge
 {
     public $source;
