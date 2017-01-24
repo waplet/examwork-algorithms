@@ -3,9 +3,6 @@
 require_once __DIR__ . "/include/functions.php";
 require_once __DIR__ . "/include/FlowNetwork.php";
 
-// print_r();
-
-ini_set("memory_limit", "1G");
 /**
  * Preparing data
  */
@@ -43,8 +40,7 @@ $houses = getHouses($graph, $index);
  */
 $paths = iterativePaths($graph['edges'], $houses['pooh'], $houses['piglet']);
 $edgedPaths = getPathsToEdges($paths);
-$edgeFrequencies = getEdgeFrequencies($edgedPaths);
-$honeyableEdges = getHoneyableEdges($edgeFrequencies, $edgedPaths);
+$honeyableEdges = getHoneyableEdges($edgedPaths);
 printOutput($honeyableEdges, false);
 
 $flowNetwork = new FlowNetwork();
@@ -63,4 +59,4 @@ foreach ($graph['edges'] as $from => $edges) {
 $flow = $flowNetwork->maxFlow($houses['pooh'], $houses['piglet']);
 echo "\n";
 // print_r($flowNetwork->flow);
-var_dump($flow);
+// var_dump($flow);

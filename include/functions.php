@@ -44,50 +44,6 @@ function getHouses($graph, $index = 1)
 }
 
 /**
- * @param $edges
- * @param $start
- * @param $legalDestination
- * @return array
- * @deprecated lets use iterative version
- */
-function calculatePaths($edges, $start, $legalDestination)
-{
-    $result = [];
-    calcRecursivePaths($result, $edges, [], $start, $legalDestination);
-    return $result;
-}
-
-/**
- * @param $result
- * @param $edges
- * @param $currentPath
- * @param $lastEdge
- * @param $legalDestination
- * @deprecated
- */
-function calcRecursivePaths(&$result, $edges, $currentPath, $lastEdge, $legalDestination)
-{
-    if (!isset($edges[$lastEdge])) {
-        if ($lastEdge == $legalDestination) {
-            $result[] = array_merge($currentPath, [$lastEdge]);
-        }
-        return;
-    }
-
-    if (in_array($lastEdge, $currentPath)) {
-        // loop
-        $result[] = $currentPath;
-        return;
-    }
-
-    foreach ($edges[$lastEdge] as $edge) {
-        calcRecursivePaths($result, $edges, array_merge($currentPath, [$lastEdge]), $edge, $legalDestination);
-    }
-
-    return;
-}
-
-/**
  * @param array $edges [from => [to1, to2, to3]]
  * @param int $start
  * @param int $legalDestination marker to check if path is legit
@@ -200,23 +156,23 @@ function getEdgeFrequencies($edgedPaths)
 }
 
 /**
- * @param $edgeFrequencies ['u:v' => (int) frequency, 'key' => 'u' . ':' . 'v', 'u' => int, 'v' => int]
  * @param $edgedPaths [['u' => int, 'v' => int, 'key' => 'u' . ':' . 'v']]
  * @return array
  */
-function getHoneyableEdges($edgeFrequencies, $edgedPaths)
+function getHoneyableEdges($edgedPaths)
 {
     $result = [];
 
-    while (!empty($edgedPaths) && !empty($edgeFrequencies)) {
+    while (!empty($edgedPaths)) {
+        $edgeFrequencies = getEdgeFrequencies($edgedPaths);
         $edge = array_pop($edgeFrequencies);
         $edgeKey = $edge['key'];
 
         foreach ($edgedPaths as $k => $edgedPath) {
             if (isset($edgedPath[$edgeKey])) {
                 // Found where to put Honeypot
-                unset($edgedPaths[$k]);
                 $result[$edgeKey] = $edge;
+                unset($edgedPaths[$k]);
             }
         }
     }
