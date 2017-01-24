@@ -33,7 +33,7 @@ function parseHorizontal($data, $delimiter = ' ')
 /**
  * @param array $data array of lines
  * @param string $delimiter
- * @return array
+ * @return array ['vertices' => int, 'edges' => []]
  */
 function parseVertical($data, $delimiter = ' ')
 {
@@ -44,6 +44,10 @@ function parseVertical($data, $delimiter = ' ')
         'edges' => [],
     ];
 
+    /**
+     * $edge[0] from
+     * $edge[1] to
+     */
     foreach ($data as $value) {
         $edge = explode($delimiter, $value);
 
@@ -112,7 +116,7 @@ function iterativePaths($edges, $start, $legalDestination, $withEndpoints = true
     $stack = [];
     $paths = [];
     if ($withEndpoints) {
-        $path = [$start];
+        $path = [$start => true];
     } else {
         $path = [];
     }
@@ -129,7 +133,7 @@ function iterativePaths($edges, $start, $legalDestination, $withEndpoints = true
             if ($item['start'] == $legalDestination) {
                 if ($withEndpoints) {
                     $path = $item['path'];
-                    $path[] = $item['start'];
+                    $path[$item['start']] = true;
                     $paths[] = $path;
                 } else {
                     $paths[] = $item['path'];
@@ -140,13 +144,13 @@ function iterativePaths($edges, $start, $legalDestination, $withEndpoints = true
 
         } else {
             foreach ($edges[$item['start']] as $vertice) {
-                if (in_array($item['start'], $item['path'])) {
+                if (isset($item['path'][$item['start']])) {
                     // possible loop
                     continue;
                 }
 
                 $path = $item['path'];
-                $path[] = $item['start'];
+                $path[$item['start']] = true;
                 $stack[] = ['start' => $vertice, 'path' => $path];
 
                 continue;
@@ -161,11 +165,9 @@ function iterativePaths($edges, $start, $legalDestination, $withEndpoints = true
 /**
  * Ford-Fulkerson algorithm for finding max flow in graph
  * @param $paths
- * @param $from
- * @param $to
  * @return array
  */
-function maxFlow($paths, $from, $to)
+function maxFlow($paths)
 {
     // All edges has capacity of 1
     $capacity = 1;
@@ -173,9 +175,9 @@ function maxFlow($paths, $from, $to)
 
     foreach ($paths as $path) {
         $edges = pathToEdges($path);
-        $residuals = array_map(function ($e) use ($flow) {
+        $residuals = array_map(function ($e) use ($flow, $capacity) {
             $edge = $e['u'] . ':' . $e['v'];
-            return 1 - (isset($flow[$edge]) ? $flow[$edge] : 0);
+            return $capacity - (isset($flow[$edge]) ? $flow[$edge] : 0);
         }, $edges);
 
         $localFlow = min($residuals);
@@ -198,18 +200,24 @@ function maxFlow($paths, $from, $to)
 }
 
 /**
- * Full path [s, a,b,c, .. t]
+ * Full path [s, a,b,c, .. t], hash map
  * @param $path
- * @return array
+ * @return array ['u' => int, 'v' => int]
  */
 function pathToEdges($path)
 {
     $edges = [];
-    for ($i = 0; $i < count($path) - 1; $i++) {
-        $edges[] = [
-            'u' => $path[$i],
-            'v' => $path[$i + 1]
-        ];
+    $i = 0;
+    $edge = [];
+    foreach ($path as $e => $_) {
+        if ($i > 0) {
+            $edge['v'] = $e;
+            $edges[] = $edge;
+            $edge = ['u' => $e];
+        } else {
+            $edge['u'] = $e;
+        }
+        $i++;
     }
 
     return $edges;
