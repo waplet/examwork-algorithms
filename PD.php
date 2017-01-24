@@ -24,25 +24,34 @@ $houses = getHouses($graph);
 // $houses = getHouses($graph, 0);
 
 $paths = iterativePaths($graph['edges'], $houses['pooh'], $houses['piglet']);
-print_r($paths);
+// print_r($paths);
 
-$frequencyEdges = frequencyEdges($paths);
-arsort($frequencyEdges);
-print_r($frequencyEdges);
+$edgedPaths = getPathsToEdges($paths);
+// print_r($edgedPaths);
+$edgeFrequencies = getEdgeFrequencies($edgedPaths);
+// print_r($edgeFrequencies);
+
+$honeyableEdges = getHoneyableEdges($edgeFrequencies, $edgedPaths);
+// print_r($honeyableEdges);
+
+echo "On how many edges to put the:\t " . count($honeyableEdges);
+echo "\nResult: " . implode(" ", array_map(function ($edge) {
+    return $edge['u'] . " " . $edge['v'];
+},$honeyableEdges));
 
 /**
  * With Ford-Fulkerson algorithm
  */
-$flowNetwork = new FlowNetwork();
-for ($i = $houses['pooh']; $i <= $houses['piglet']; $i++) {
-    $flowNetwork->addVertex($i);
-}
-
-foreach ($graph['edges'] as $from => $edges) {
-    foreach ($edges as $to) {
-        $flowNetwork->addEdge($from, $to);
-    }
-}
-$flow = $flowNetwork->maxFlow($houses['pooh'], $houses['piglet']);
+// $flowNetwork = new FlowNetwork();
+// for ($i = $houses['pooh']; $i <= $houses['piglet']; $i++) {
+//     $flowNetwork->addVertex($i);
+// }
+//
+// foreach ($graph['edges'] as $from => $edges) {
+//     foreach ($edges as $to) {
+//         $flowNetwork->addEdge($from, $to);
+//     }
+// }
+// $flow = $flowNetwork->maxFlow($houses['pooh'], $houses['piglet']);
 // print_r($flowNetwork);
-var_dump($flow);
+// var_dump($flow);

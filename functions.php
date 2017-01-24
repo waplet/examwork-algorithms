@@ -67,7 +67,7 @@ function getHouses($graph, $index = 1)
 {
     return [
         'pooh' => $index == 1 ? 1 : 0,
-        'piglet' => $index == 1 ? $graph['vertices'] : ($graph['vertices'] - 1)
+        'piglet' => $index == 1 ? $graph['vertices'] : ($graph['vertices'] - 1),
     ];
 }
 
@@ -121,8 +121,7 @@ function iterativePaths($edges, $start, $legalDestination, $withEndpoints = true
         $stack[] = ['start' => $step, 'path' => $path];
     }
 
-    do
-    {
+    do {
         $item = array_pop($stack);
 
         if (!isset($edges[$item['start']])) {
@@ -152,49 +151,9 @@ function iterativePaths($edges, $start, $legalDestination, $withEndpoints = true
                 continue;
             }
         }
-    }
-    while (!empty($stack));
+    } while (!empty($stack));
 
     return $paths;
-}
-
-/**
- * Ford-Fulkerson algorithm for finding max flow in graph
- * @param $paths
- * @param $from
- * @param $to
- * @return array
- */
-function maxFlow($paths, $from, $to)
-{
-    // All edges has capacity of 1
-    $capacity = 1;
-    $flow = [];
-
-    foreach ($paths as $path) {
-        $edges = pathToEdges($path);
-        $residuals = array_map(function ($e) use ($flow) {
-            $edge = $e['u'] . ':' . $e['v'];
-            return 1 - (isset($flow[$edge]) ? $flow[$edge] : 0);
-        }, $edges);
-
-        $localFlow = min($residuals);
-        foreach ($edges as $e) {
-            $edge = $e['u'] . ':' . $e['v'];
-            if (!isset($flow[$edge])) {
-                $flow[$edge] = 0;
-            }
-            $flow[$edge] += $localFlow;
-
-            // $rEdge = $e['v'] . ':' . $e['u'];
-            // if (!isset($flow[$rEdge])) {
-            //     $flow[$rEdge] = 0;
-            // }
-            // $flow[$rEdge] += $localFlow;
-        }
-    }
-
-    return $flow;
 }
 
 /**
@@ -206,11 +165,81 @@ function pathToEdges($path)
 {
     $edges = [];
     for ($i = 0; $i < count($path) - 1; $i++) {
-        $edges[] = [
+        $edges[$path[$i] . ':' . $path[$i + 1]] = [
             'u' => $path[$i],
-            'v' => $path[$i + 1]
+            'v' => $path[$i + 1],
+            'key' => $path[$i] . ':' . $path[$i + 1],
         ];
     }
 
     return $edges;
+}
+
+/**
+ * @param $edgedPaths
+ * @return array ['u:v' => frequency]
+ */
+function getEdgeFrequencies($edgedPaths)
+{
+    $result = [];
+    foreach ($edgedPaths as $path) {
+        foreach ($path as $edge) {
+            $key = $edge['key'];
+            if (!isset($result[$key])) {
+                $result[$key] = [
+                    'key' => $key,
+                    'frequency' => 0,
+                    'u' => $edge['u'],
+                    'v' => $edge['v'],
+                ];
+            }
+
+            $result[$key]['frequency']++;
+        }
+    }
+
+    // Sorts
+    uasort($result, function ($a, $b) {
+        return $a['frequency'] > $b['frequency'];
+    });
+    return $result;
+}
+
+/**
+ * @param $edgeFrequencies
+ * @param $edgedPaths
+ * @return array
+ */
+function getHoneyableEdges($edgeFrequencies, $edgedPaths)
+{
+    $result = [];
+
+    while (!empty($edgedPaths) && !empty($edgeFrequencies)) {
+        $edge = array_pop($edgeFrequencies);
+        $edgeKey = $edge['key'];
+
+        foreach ($edgedPaths as $k => $edgedPath) {
+            if (isset($edgedPath[$edgeKey])) {
+                // Found where to put Honeypot
+                unset($edgedPaths[$k]);
+                $result[$edgeKey] = $edge;
+            }
+        }
+    }
+
+    return $result;
+}
+
+/**
+ * @param $paths
+ * @return array [['u:v']] multiple edges
+ */
+function getPathsToEdges($paths)
+{
+    $edgedPaths = [];
+    foreach ($paths as $path) {
+        $edgedPaths[] = pathToEdges($path);
+    }
+
+    return $edgedPaths;
 }
